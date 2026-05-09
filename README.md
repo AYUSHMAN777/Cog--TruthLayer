@@ -1,5 +1,7 @@
 # TruthLayer – AI Fact Checker
 
+Live URL : https://truthlayer-ai-fact-checker.streamlit.app/
+
 TruthLayer is an AI-powered PDF fact-checking web app built for assignment-style real-world use.  
 It lets users upload a PDF, extracts factual claims from the document, verifies them using live web evidence, and returns a structured report.
 
@@ -97,16 +99,6 @@ streamlit run app.py
 ```
 
 Once started, open the local URL shown in the terminal.
-
-## Deployment on Streamlit Cloud
-
-1. Push this project to GitHub.
-2. Open [Streamlit Cloud](https://streamlit.io/cloud).
-3. Create a new app and select your repository.
-4. Add secrets in Streamlit:
-   - `GEMINI_API_KEY`
-   - `TAVILY_API_KEY`
-5. Deploy.
 
 ## Example Workflow
 
