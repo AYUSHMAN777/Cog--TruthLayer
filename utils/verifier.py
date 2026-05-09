@@ -18,7 +18,10 @@ ALLOWED_STATUSES = {"VERIFIED", "INACCURATE", "FALSE", "NOT ENOUGH DATA"}
 def search_evidence(tavily_client: TavilyClient, claim_text: str, max_results: int = 5) -> List[Dict]:
     """Fetch evidence snippets from Tavily."""
     result = tavily_client.search(
-        query=f"Fact check this claim with latest numbers and dates: {claim_text}",
+        query=(
+            "Fact check this claim using reliable sources (official pages, "
+            f"trusted news, research reports): {claim_text}"
+        ),
         search_depth="advanced",
         max_results=max_results,
         include_answer=False,
@@ -50,12 +53,20 @@ def _extract_numbers(text: str) -> List[float]:
     return values
 
 
+def _extract_years(text: str) -> List[int]:
+    years = re.findall(r"\b(19\d{2}|20\d{2})\b", text)
+    return [int(year) for year in years]
+
+
 def _rule_based_status(claim_text: str, model_status: str, evidence_results: List[Dict]) -> str:
     claim_numbers = _extract_numbers(claim_text)
+    claim_years = _extract_years(claim_text)
+    claim_lower = claim_text.lower()
     evidence_text = " ".join(
         f"{item.get('title', '')} {item.get('content', '')}" for item in evidence_results
     )
     evidence_numbers = _extract_numbers(evidence_text)
+    evidence_years = _extract_years(evidence_text)
 
     trusted_hits = 0
     for item in evidence_results:
@@ -65,14 +76,19 @@ def _rule_based_status(claim_text: str, model_status: str, evidence_results: Lis
     if not evidence_results:
         return "NOT ENOUGH DATA"
 
-    if len(evidence_results) <= 1 and trusted_hits == 0:
-        return "NOT ENOUGH DATA"
-
     # Impossible values are usually false.
     if claim_numbers:
         for number in claim_numbers:
-            if number >= 1_000_000_000 and ("population" in claim_text.lower()):
+            if number >= 1_000_000_000 and ("population" in claim_lower):
                 return "FALSE"
+
+    # Date contradiction for founding/established claims.
+    if ("founded" in claim_lower or "established" in claim_lower) and claim_years and evidence_years:
+        claim_year = claim_years[0]
+        nearest_year = min(evidence_years, key=lambda y: abs(y - claim_year))
+        year_gap = abs(claim_year - nearest_year)
+        if year_gap >= 2:
+            return "INACCURATE"
 
     # Compare numeric mismatch severity.
     if claim_numbers and evidence_numbers:
@@ -80,10 +96,17 @@ def _rule_based_status(claim_text: str, model_status: str, evidence_results: Lis
         nearest = min(evidence_numbers, key=lambda x: abs(x - claim_value))
         if claim_value > 0:
             ratio = abs(claim_value - nearest) / claim_value
-            if ratio > 0.65 and trusted_hits >= 1:
-                return "FALSE" if trusted_hits >= 2 else "INACCURATE"
+            if ratio > 0.65:
+                if trusted_hits >= 1 or len(evidence_results) >= 3:
+                    return "FALSE" if trusted_hits >= 2 else "INACCURATE"
             if ratio > 0.2:
                 return "INACCURATE"
+
+    if model_status == "NOT ENOUGH DATA" and (evidence_numbers or evidence_years) and len(evidence_results) >= 2:
+        return "INACCURATE"
+
+    if len(evidence_results) <= 1 and trusted_hits == 0:
+        return "NOT ENOUGH DATA"
 
     return model_status
 

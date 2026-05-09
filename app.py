@@ -223,7 +223,10 @@ def main() -> None:
 
         if not claims:
             progress.empty()
-            st.warning("No verifiable factual claims found in this PDF.")
+            st.warning(
+                "No verifiable factual claims found in this PDF. "
+                "Try a text-based PDF with numbers/dates, or retry after a short wait if API quota is hit."
+            )
             return
 
         try:
