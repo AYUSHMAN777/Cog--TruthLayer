@@ -1,0 +1,27 @@
+.env
+.env.local
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+.venv/
+venv/
+env/
+
+.streamlit/secrets.toml
+
+# Generated local outputs (keep folder via .gitkeep)
+sample_outputs/*
+!sample_outputs/.gitkeep
+
+# OS/IDE noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
