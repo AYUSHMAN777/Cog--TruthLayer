@@ -128,6 +128,6 @@ Once started, open the local URL shown in the terminal.
 
 ## Author
 
-Ayush  
+Ayushman Singh  
 Built as an AI internship assignment project using Streamlit + Gemini + Tavily.
 
